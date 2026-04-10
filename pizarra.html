@@ -214,6 +214,48 @@
   }
   .btn-reset:hover { background: rgba(255,71,87,0.15); }
 
+  /* Último uso */
+  .ultimo-uso {
+    display: none;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(26,108,255,0.05);
+    gap: 10px;
+    align-items: center;
+  }
+  .ultimo-uso.visible { display: flex; }
+  .ultimo-uso-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(26,108,255,0.12);
+    border: 1px solid rgba(26,108,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .ultimo-uso-info { flex: 1; min-width: 0; }
+  .ultimo-uso-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .ultimo-uso-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ultimo-uso-detalle {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
   /* Leyenda de prioridades */
   .leyenda {
     display: flex;
@@ -543,6 +585,16 @@
         <button class="btn-reset" onclick="confirmarReset()">↺ Limpiar fila</button>
       </div>
 
+      <!-- Último uso -->
+      <div class="ultimo-uso" id="ultimoUsoBar">
+        <div class="ultimo-uso-icon">📋</div>
+        <div class="ultimo-uso-info">
+          <div class="ultimo-uso-label">Último registro de uso</div>
+          <div class="ultimo-uso-nombre" id="ultimoNombre">—</div>
+          <div class="ultimo-uso-detalle" id="ultimoDetalle">—</div>
+        </div>
+      </div>
+
       <!-- Leyenda -->
       <div class="leyenda">
         <div class="ley-item"><div class="ley-dot urgente"></div>Urgente</div>
@@ -598,7 +650,7 @@
   // ─────────────────────────────────────────────
   //  CONFIGURACIÓN
   // ─────────────────────────────────────────────
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS09Mz3FyIwIuX51rcYfiOXeGJiZeIFXP5Qp_m4wqfRPlPOl5WRuvaFf_ADUuUEyk/exec";
+  const APPS_SCRIPT_URL = "REEMPLAZAR_CON_TU_URL_DE_APPS_SCRIPT";
   const PIN_CORRECTO    = "4444";
 
   // ─────────────────────────────────────────────
@@ -680,12 +732,25 @@
     try {
       const resp = await fetch(APPS_SCRIPT_URL);
       const data = await resp.json();
-      if (data.status === "ok") renderFila(data.fila);
-      else throw new Error(data.message);
+      if (data.status === "ok") {
+        renderFila(data.fila);
+        renderUltimoUso(data.ultimoUso);
+      } else throw new Error(data.message);
     } catch {
       document.getElementById("filaList").innerHTML =
         '<div class="loading-row">Error al cargar. Revisá la conexión.</div>';
     }
+  }
+
+  // ─────────────────────────────────────────────
+  //  ÚLTIMO USO
+  // ─────────────────────────────────────────────
+  function renderUltimoUso(u) {
+    if (!u) return;
+    const bar = document.getElementById("ultimoUsoBar");
+    document.getElementById("ultimoNombre").textContent  = u.nombre;
+    document.getElementById("ultimoDetalle").textContent = u.servicio + " · " + u.timestamp + "hs";
+    bar.classList.add("visible");
   }
 
   // ─────────────────────────────────────────────
@@ -717,7 +782,7 @@
               <span class="prio-pill ${p}">${PRIO_EMOJI[p]} ${PRIO_LABEL[p] || p}</span>
             </div>
             <div class="fila-just">${esc(item.justificacion)}</div>
-            <div class="fila-time">Solicitado a las ${item.timestamp.replace(/^'/, '')}</div>
+            <div class="fila-time">Desde las ${item.timestamp}</div>
           </div>
           <button class="btn-del" onclick="eliminarDeFila(${item.posicion})">✕</button>
         </div>`;
