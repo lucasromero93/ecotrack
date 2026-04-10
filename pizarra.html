@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Pizarra Ecógrafo · Clínica Médica</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:     #0b1524;
+    --blue:     #1a6cff;
+    --cyan:     #00d4aa;
+    --amber:    #f5a623;
+    --red:      #ff4757;
+    --green:    #00d4aa;
+    --card:     #15263d;
+    --card2:    #1c3050;
+    --border:   rgba(255,255,255,0.09);
+    --text:     #e8edf5;
+    --muted:    #6b84a3;
+
+    /* prioridades */
+    --urgente-bg:      rgba(255,71,87,0.08);
+    --urgente-border:  rgba(255,71,87,0.35);
+    --urgente-color:   #ff6b7a;
+    --urgente-left:    #ff4757;
+
+    --programado-bg:      rgba(245,166,35,0.08);
+    --programado-border:  rgba(245,166,35,0.35);
+    --programado-color:   #f5c842;
+    --programado-left:    #f5a623;
+
+    --sin-bg:      rgba(107,132,163,0.08);
+    --sin-border:  rgba(107,132,163,0.2);
+    --sin-color:   #8ba3bf;
+    --sin-left:    #4a6080;
+  }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Sora', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+  }
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 56px;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, rgba(26,108,255,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(0,212,170,0.06) 0%, transparent 55%);
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #112038, #1c3050);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    padding: 22px 26px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: rgba(0,212,170,0.12);
+    color: var(--cyan);
+    border: 1px solid rgba(0,212,170,0.25);
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .header-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.45rem;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .header-sub {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 3px;
+    font-family: 'DM Mono', monospace;
+  }
+  .date-block { text-align: right; flex-shrink: 0; }
+  .date-day   { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--cyan); line-height: 1; }
+  .date-month { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 22px 22px;
+    overflow: hidden;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ══════════════════════════════════════════════
+     PIN
+  ══════════════════════════════════════════════ */
+  .pin-view {
+    padding: 36px 28px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .pin-icon {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: rgba(26,108,255,0.1);
+    border: 1.5px solid rgba(26,108,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .pin-title { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: #fff; text-align: center; }
+  .pin-sub   { font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: -10px; }
+
+  .pin-dots { display: flex; gap: 14px; }
+  .pin-dot {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--card2);
+    border: 1.5px solid var(--border);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pin-dot.filled { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,212,170,0.5); }
+  .pin-dot.error  { background: var(--red);  border-color: var(--red); }
+
+  .pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 250px;
+  }
+  .pin-key {
+    background: var(--card2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.12s, transform 0.08s;
+    user-select: none;
+  }
+  .pin-key:hover  { background: #243550; }
+  .pin-key:active { transform: scale(0.92); }
+  .pin-key.wide   { grid-column: span 2; }
+  .pin-key.del    { color: var(--muted); font-size: 0.85rem; }
+  .pin-error { font-size: 0.73rem; color: var(--red); text-align: center; min-height: 18px; font-family: 'DM Mono', monospace; }
+
+  /* ══════════════════════════════════════════════
+     PIZARRA
+  ══════════════════════════════════════════════ */
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; }
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+    animation: blink 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .toolbar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.63rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .btn-reset {
+    background: rgba(255,71,87,0.08);
+    border: 1px solid rgba(255,71,87,0.22);
+    color: rgba(255,107,122,0.8);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-transform: uppercase;
+  }
+  .btn-reset:hover { background: rgba(255,71,87,0.15); }
+
+  /* Leyenda de prioridades */
+  .leyenda {
+    display: flex;
+    gap: 14px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.01);
+  }
+  .ley-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .ley-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ley-dot.urgente    { background: var(--urgente-left); }
+  .ley-dot.programado { background: var(--programado-left); }
+  .ley-dot.sin        { background: var(--sin-left); }
+
+  /* Lista */
+  .fila-list { padding: 6px 0; min-height: 72px; }
+
+  .fila-empty {
+    padding: 30px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.8;
+  }
+  .fila-empty span { font-size: 1.7rem; display: block; margin-bottom: 8px; }
+
+  .loading-row {
+    padding: 28px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.73rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Item de la fila */
+  .fila-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.035);
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+    animation: slideIn 0.28s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+  .fila-item:last-child { border-bottom: none; }
+  .fila-item:hover { background: rgba(255,255,255,0.02); }
+
+  .fila-item.urgente    { border-left-color: var(--urgente-left);    background: var(--urgente-bg); }
+  .fila-item.programado { border-left-color: var(--programado-left); background: var(--programado-bg); }
+  .fila-item.sin_urgencia { border-left-color: var(--sin-left); }
+
+  .pos-badge {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .pos-badge.urgente    { background: rgba(255,71,87,0.15);  color: var(--urgente-color); }
+  .pos-badge.programado { background: rgba(245,166,35,0.15); color: var(--programado-color); }
+  .pos-badge.sin_urgencia { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+  .fila-info { flex: 1; min-width: 0; }
+  .fila-top  { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+
+  .fila-nombre {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .prio-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+  .prio-pill.urgente    { color: var(--urgente-color);    background: rgba(255,71,87,0.1);  border-color: var(--urgente-border); }
+  .prio-pill.programado { color: var(--programado-color); background: rgba(245,166,35,0.1); border-color: var(--programado-border); }
+  .prio-pill.sin_urgencia { color: var(--sin-color); background: rgba(107,132,163,0.08); border-color: var(--sin-border); }
+
+  .fila-just { font-size: 0.74rem; color: var(--muted); line-height: 1.4; }
+  .fila-time { font-family: 'DM Mono', monospace; font-size: 0.58rem; color: rgba(107,132,163,0.55); margin-top: 4px; }
+
+  .btn-del {
+    background: none;
+    border: 1px solid rgba(255,71,87,0.18);
+    color: rgba(255,71,87,0.4);
+    border-radius: 7px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.72rem;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .btn-del:hover { background: rgba(255,71,87,0.1); color: var(--red); border-color: rgba(255,71,87,0.4); }
+
+  /* ── FORMULARIO ── */
+  .add-form {
+    border-top: 1px solid var(--border);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    background: rgba(255,255,255,0.012);
+  }
+  .add-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--card2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    resize: none;
+  }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+  input:focus, textarea:focus, select:focus {
+    border-color: rgba(0,212,170,0.45);
+    box-shadow: 0 0 0 3px rgba(0,212,170,0.07);
+  }
+  select option { background: #15263d; }
+
+  /* Selector de prioridad — 3 botones */
+  .prio-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .prio-btn {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 6px;
+    background: var(--card2);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.08s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  .prio-btn:active { transform: scale(0.96); }
+  .prio-btn .prio-emoji { font-size: 1.2rem; }
+  .prio-btn .prio-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+
+  .prio-btn.selected.urgente    { background: rgba(255,71,87,0.1);  border-color: var(--urgente-border);    }
+  .prio-btn.selected.programado { background: rgba(245,166,35,0.1); border-color: var(--programado-border); }
+  .prio-btn.selected.sin_urgencia { background: rgba(107,132,163,0.1); border-color: var(--sin-border); }
+  .prio-btn.selected .prio-label { color: var(--text); }
+
+  .add-error {
+    font-size: 0.7rem;
+    color: var(--red);
+    font-family: 'DM Mono', monospace;
+    display: none;
+  }
+  .add-error.visible { display: block; }
+
+  .btn-add {
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 13px;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 18px rgba(26,108,255,0.3);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  }
+  .btn-add:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(26,108,255,0.4); }
+  .btn-add:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .btn-add.loading .spinner  { display: block; }
+  .btn-add.loading .btn-label { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1e3a5f;
+    border: 1px solid rgba(0,212,170,0.3);
+    color: var(--cyan);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.73rem;
+    padding: 10px 20px;
+    border-radius: 20px;
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* Footer */
+  .footer {
+    padding: 12px 20px;
+    font-size: 0.58rem;
+    color: rgba(107,132,163,0.35);
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    letter-spacing: 0.06em;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="badge">Clínica Médica</div>
+      <div class="header-title">Pizarra<br/>Ecógrafo</div>
+      <div class="header-sub">Hospital Fernández</div>
+    </div>
+    <div class="date-block">
+      <div class="date-day" id="dateDay">--</div>
+      <div class="date-month" id="dateMonth">---</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- ══ PIN ══ -->
+    <div class="view active" id="pinView">
+      <div class="pin-view">
+        <div class="pin-icon">🔒</div>
+        <div class="pin-title">Acceso supervisores</div>
+        <div class="pin-sub">Ingresá el PIN de Clínica Médica</div>
+        <div class="pin-dots">
+          <div class="pin-dot" id="d0"></div>
+          <div class="pin-dot" id="d1"></div>
+          <div class="pin-dot" id="d2"></div>
+          <div class="pin-dot" id="d3"></div>
+        </div>
+        <div class="pin-keypad">
+          <button class="pin-key" onclick="pinPress('1')">1</button>
+          <button class="pin-key" onclick="pinPress('2')">2</button>
+          <button class="pin-key" onclick="pinPress('3')">3</button>
+          <button class="pin-key" onclick="pinPress('4')">4</button>
+          <button class="pin-key" onclick="pinPress('5')">5</button>
+          <button class="pin-key" onclick="pinPress('6')">6</button>
+          <button class="pin-key" onclick="pinPress('7')">7</button>
+          <button class="pin-key" onclick="pinPress('8')">8</button>
+          <button class="pin-key" onclick="pinPress('9')">9</button>
+          <button class="pin-key wide" onclick="pinPress('0')">0</button>
+          <button class="pin-key del"  onclick="pinDel()">⌫</button>
+        </div>
+        <div class="pin-error" id="pinError"></div>
+      </div>
+    </div>
+
+    <!-- ══ PIZARRA ══ -->
+    <div class="view" id="pizarraView">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="live-dot"></div>
+          <span class="toolbar-label" id="filaCount">cargando...</span>
+        </div>
+        <button class="btn-reset" onclick="confirmarReset()">↺ Limpiar fila</button>
+      </div>
+
+      <!-- Leyenda -->
+      <div class="leyenda">
+        <div class="ley-item"><div class="ley-dot urgente"></div>Urgente</div>
+        <div class="ley-item"><div class="ley-dot programado"></div>Programado</div>
+        <div class="ley-item"><div class="ley-dot sin"></div>Sin urgencia</div>
+      </div>
+
+      <!-- Fila -->
+      <div class="fila-list" id="filaList">
+        <div class="loading-row">Cargando pizarra...</div>
+      </div>
+
+      <!-- Formulario -->
+      <div class="add-form">
+        <div class="add-title">Anotarse en la fila</div>
+
+        <input id="inputNombre" type="text" placeholder="Nombre del médico" autocomplete="name"/>
+        <textarea id="inputJust" rows="2" placeholder="Justificación breve (ej: paracentesis sala 3)"></textarea>
+
+        <!-- Selector de prioridad -->
+        <div class="prio-selector">
+          <button class="prio-btn urgente" id="btnUrgente" onclick="selPrioridad('urgente')">
+            <span class="prio-emoji">🔴</span>
+            <span class="prio-label">Urgente</span>
+          </button>
+          <button class="prio-btn programado" id="btnProgramado" onclick="selPrioridad('programado')">
+            <span class="prio-emoji">🟡</span>
+            <span class="prio-label">Programado</span>
+          </button>
+          <button class="prio-btn sin_urgencia" id="btnSin" onclick="selPrioridad('sin_urgencia')">
+            <span class="prio-emoji">⚪</span>
+            <span class="prio-label">Sin urgencia</span>
+          </button>
+        </div>
+
+        <div class="add-error" id="addError">Completá todos los campos y seleccioná una prioridad.</div>
+
+        <button class="btn-add" id="btnAgregar" onclick="agregarAFila()">
+          <div class="spinner"></div>
+          <span class="btn-label">+ Anotarme en la fila</span>
+        </button>
+      </div>
+
+    </div><!-- /pizarraView -->
+
+    <div class="footer">PIZARRA ECÓGRAFO · CLÍNICA MÉDICA · SE REINICIA A MEDIANOCHE</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  CONFIGURACIÓN
+  // ─────────────────────────────────────────────
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS09Mz3FyIwIuX51rcYfiOXeGJiZeIFXP5Qp_m4wqfRPlPOl5WRuvaFf_ADUuUEyk/exec";
+  const PIN_CORRECTO    = "4444";
+
+  // ─────────────────────────────────────────────
+  //  FECHA
+  // ─────────────────────────────────────────────
+  (function() {
+    const meses = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+    const hoy   = new Date();
+    document.getElementById("dateDay").textContent   = hoy.getDate();
+    document.getElementById("dateMonth").textContent = meses[hoy.getMonth()] + " " + hoy.getFullYear();
+  })();
+
+  // ─────────────────────────────────────────────
+  //  PIN
+  // ─────────────────────────────────────────────
+  let pinActual = "";
+
+  function pinPress(d) {
+    if (pinActual.length >= 4) return;
+    pinActual += d;
+    actualizarDots();
+    if (pinActual.length === 4) validarPin();
+  }
+
+  function pinDel() {
+    pinActual = pinActual.slice(0,-1);
+    actualizarDots();
+    document.getElementById("pinError").textContent = "";
+  }
+
+  function actualizarDots(error = false) {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById("d"+i);
+      dot.className = "pin-dot";
+      if (error)                  dot.classList.add("error");
+      else if (i < pinActual.length) dot.classList.add("filled");
+    }
+  }
+
+  function validarPin() {
+    if (pinActual === PIN_CORRECTO) {
+      document.getElementById("pinView").classList.remove("active");
+      document.getElementById("pizarraView").classList.add("active");
+      cargarFila();
+    } else {
+      actualizarDots(true);
+      document.getElementById("pinError").textContent = "PIN incorrecto";
+      setTimeout(() => { pinActual = ""; actualizarDots(); document.getElementById("pinError").textContent = ""; }, 900);
+    }
+  }
+
+  document.addEventListener("keydown", e => {
+    if (!document.getElementById("pinView").classList.contains("active")) return;
+    if (e.key >= "0" && e.key <= "9") pinPress(e.key);
+    if (e.key === "Backspace") pinDel();
+  });
+
+  // ─────────────────────────────────────────────
+  //  PRIORIDAD
+  // ─────────────────────────────────────────────
+  let prioSeleccionada = "";
+
+  function selPrioridad(p) {
+    prioSeleccionada = p;
+    ["urgente","programado","sin_urgencia"].forEach(k => {
+      const btn = document.getElementById("btn" + k.charAt(0).toUpperCase() + k.slice(1).replace("_urgencia","Sin").replace("_",""));
+      if (btn) btn.classList.remove("selected");
+    });
+    // map id
+    const ids = { urgente:"btnUrgente", programado:"btnProgramado", sin_urgencia:"btnSin" };
+    document.getElementById(ids[p]).classList.add("selected");
+    document.getElementById("addError").classList.remove("visible");
+  }
+
+  // ─────────────────────────────────────────────
+  //  CARGAR FILA
+  // ─────────────────────────────────────────────
+  async function cargarFila() {
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL);
+      const data = await resp.json();
+      if (data.status === "ok") renderFila(data.fila);
+      else throw new Error(data.message);
+    } catch {
+      document.getElementById("filaList").innerHTML =
+        '<div class="loading-row">Error al cargar. Revisá la conexión.</div>';
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  RENDER
+  // ─────────────────────────────────────────────
+  const PRIO_LABEL = { urgente:"Urgente", programado:"Programado", sin_urgencia:"Sin urgencia" };
+  const PRIO_EMOJI = { urgente:"🔴", programado:"🟡", sin_urgencia:"⚪" };
+
+  function renderFila(fila) {
+    const list  = document.getElementById("filaList");
+    const count = document.getElementById("filaCount");
+
+    if (!fila || fila.length === 0) {
+      count.textContent = "Fila vacía";
+      list.innerHTML = `<div class="fila-empty"><span>📋</span>No hay nadie anotado.<br/>El ecógrafo está disponible.</div>`;
+      return;
+    }
+
+    count.textContent = fila.length === 1 ? "1 en la fila" : fila.length + " en la fila";
+
+    list.innerHTML = fila.map(item => {
+      const p = item.prioridad || "sin_urgencia";
+      return `
+        <div class="fila-item ${p}">
+          <div class="pos-badge ${p}">${item.posicion}</div>
+          <div class="fila-info">
+            <div class="fila-top">
+              <div class="fila-nombre">${esc(item.nombre)}</div>
+              <span class="prio-pill ${p}">${PRIO_EMOJI[p]} ${PRIO_LABEL[p] || p}</span>
+            </div>
+            <div class="fila-just">${esc(item.justificacion)}</div>
+            <div class="fila-time">Desde las ${item.timestamp}</div>
+          </div>
+          <button class="btn-del" onclick="eliminarDeFila(${item.posicion})">✕</button>
+        </div>`;
+    }).join("");
+  }
+
+  // ─────────────────────────────────────────────
+  //  AGREGAR
+  // ─────────────────────────────────────────────
+  async function agregarAFila() {
+    const nombre = document.getElementById("inputNombre").value.trim();
+    const just   = document.getElementById("inputJust").value.trim();
+    const errEl  = document.getElementById("addError");
+
+    if (!nombre || !just || !prioSeleccionada) {
+      errEl.classList.add("visible");
+      return;
+    }
+    errEl.classList.remove("visible");
+
+    const btn = document.getElementById("btnAgregar");
+    btn.disabled = true;
+    btn.classList.add("loading");
+
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion:"agregar", nombre, justificacion:just, prioridad:prioSeleccionada })
+      });
+      const data = await resp.json();
+      if (data.status === "ok") {
+        document.getElementById("inputNombre").value = "";
+        document.getElementById("inputJust").value   = "";
+        prioSeleccionada = "";
+        ["btnUrgente","btnProgramado","btnSin"].forEach(id => document.getElementById(id).classList.remove("selected"));
+        showToast("✓ Anotado en posición " + data.posicion);
+        await cargarFila();
+      } else {
+        showToast("Error: " + data.message, true);
+      }
+    } catch {
+      showToast("Error de conexión", true);
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("loading");
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  ELIMINAR
+  // ─────────────────────────────────────────────
+  async function eliminarDeFila(pos) {
+    if (!confirm("¿Eliminar al médico en posición " + pos + "?")) return;
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion:"eliminar", posicion:pos })
+      });
+      const data = await resp.json();
+      if (data.status === "ok") { showToast("Eliminado"); await cargarFila(); }
+      else showToast("Error: " + data.message, true);
+    } catch { showToast("Error de conexión", true); }
+  }
+
+  // ─────────────────────────────────────────────
+  //  RESET
+  // ─────────────────────────────────────────────
+  async function confirmarReset() {
+    if (!confirm("¿Limpiar toda la fila?")) return;
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ accion:"limpiar" })
+      });
+      const data = await resp.json();
+      if (data.status === "ok") { showToast("✓ Pizarra limpiada"); await cargarFila(); }
+      else showToast("Error: " + data.message, true);
+    } catch { showToast("Error de conexión", true); }
+  }
+
+  // ─────────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────────
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  let toastTimer;
+  function showToast(msg, error = false) {
+    const t = document.getElementById("toast");
+    t.textContent     = msg;
+    t.style.color       = error ? "#ff8080"  : "var(--cyan)";
+    t.style.borderColor = error ? "rgba(255,71,87,0.3)" : "rgba(0,212,170,0.3)";
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+  }
+
+  // Auto-refresh cada 30 segundos
+  setInterval(() => {
+    if (document.getElementById("pizarraView").classList.contains("active")) cargarFila();
+  }, 30000);
+</script>
+</body>
+</html>
