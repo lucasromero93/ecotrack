@@ -717,7 +717,7 @@
               <span class="prio-pill ${p}">${PRIO_EMOJI[p]} ${PRIO_LABEL[p] || p}</span>
             </div>
             <div class="fila-just">${esc(item.justificacion)}</div>
-            <div class="fila-time">Desde las ${item.timestamp}</div>
+            <div class="fila-time">Solicitado a las ${item.timestamp.replace(/^'/, '')}</div>
           </div>
           <button class="btn-del" onclick="eliminarDeFila(${item.posicion})">✕</button>
         </div>`;
